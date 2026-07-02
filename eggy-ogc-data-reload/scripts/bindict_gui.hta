@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=9" />
+<meta charset="utf-8" />
+<title>Py 转编辑器 bindict</title>
+<HTA:APPLICATION
+    ID="BinApp"
+    APPLICATIONNAME="Py to Editor bindict"
+    BORDER="thin"
+    CAPTION="yes"
+    SHOWINTASKBAR="yes"
+    SINGLEINSTANCE="yes"
+    SYSMENU="yes"
+    WINDOWSTATE="normal"
+/>
+<style>
+body { margin:0; padding:16px; font-family:"Microsoft YaHei",Arial,sans-serif; font-size:13px; background:#f4f6f8; color:#1f2933; }
+h1 { margin:0 0 4px 0; font-size:18px; }
+.sub { color:#64748b; font-size:12px; margin-bottom:12px; }
+.sec { background:#fff; border:1px solid #d7dde3; border-radius:6px; padding:12px; margin-bottom:10px; }
+.row { margin-bottom:10px; }
+label { display:block; font-weight:bold; margin-bottom:4px; }
+input[type=text] { width:100%; box-sizing:border-box; padding:6px; border:1px solid #b8c2cc; border-radius:4px; font-family:Consolas,monospace; }
+.inline { display:flex; gap:6px; align-items:center; }
+.inline input[type=text] { flex:1; }
+select.hist { width:150px; padding:6px; border:1px solid #b8c2cc; border-radius:4px; }
+button { padding:7px 14px; border:0; border-radius:4px; background:#2563eb; color:#fff; font-weight:bold; cursor:pointer; }
+button.sm { padding:6px 9px; background:#64748b; font-weight:normal; }
+button:disabled { background:#9aa5b1; cursor:default; }
+#log { width:100%; height:220px; box-sizing:border-box; margin-top:6px; font-family:Consolas,monospace; font-size:12px; border:1px solid #b8c2cc; border-radius:4px; padding:8px; background:#0f172a; color:#e2e8f0; }
+#status { font-weight:bold; }
+.ok { color:#16a34a; } .fail { color:#dc2626; } .run { color:#2563eb; }
+.hint { color:#64748b; font-size:12px; margin-top:4px; }
+</style>
+<script language="JScript">
+var SCRIPT_DIR = "";
+var HIST_FILE = "";
+var PY = "";
+var MAX_HIST = 15;
+var histSrc = [];
+
+function byId(id){ return document.getElementById(id); }
+
+function initDirs(){
+    var p = String(location.href).replace(/^file:\/+/, "").replace(/\//g, "\\");
+    p = decodeURIComponent(p);
+    var idx = p.lastIndexOf("\\");
+    SCRIPT_DIR = idx >= 0 ? p.substring(0, idx) : ".";
+    HIST_FILE = SCRIPT_DIR + "\\_bindict_history.txt";
+}
+
+function loadHistory(){
+    histSrc = [];
+    try {
+        var fso = new ActiveXObject("Scripting.FileSystemObject");
+        if (!fso.FileExists(HIST_FILE)) return;
+        var f = fso.OpenTextFile(HIST_FILE, 1, false, -1);
+        while (!f.AtEndOfStream){
+            var line = f.ReadLine();
+            if (line.length < 2) continue;
+            if (line.substring(0,1) == "S" && line.substring(2)) histSrc[histSrc.length] = line.substring(2);
+        }
+        f.Close();
+    } catch(e){}
+}
+
+function saveHistory(){
+    try {
+        var fso = new ActiveXObject("Scripting.FileSystemObject");
+        var f = fso.CreateTextFile(HIST_FILE, true, true);
+        for (var i=0;i<histSrc.length;i++) f.WriteLine("S\t" + histSrc[i]);
+        f.Close();
+    } catch(e){ appendLog("[WARN] 保存历史失败: " + e.message); }
+}
+
+function pushHist(arr, val){
+    if (!val) return arr;
+    var out = [val];
+    for (var i=0;i<arr.length;i++){
+        if (arr[i] != val) out[out.length] = arr[i];
+        if (out.length >= MAX_HIST) break;
+    }
+    return out;
+}
+
+function refreshSelects(){
+    var sel = byId("srcHist");
+    sel.options.length = 0;
+    var o0 = document.createElement("option");
+    o0.text = "— 历史记录 —"; o0.value = "";
+    sel.add(o0);
+    for (var i=0;i<histSrc.length;i++){
+        var o = document.createElement("option");
+        o.text = histSrc[i]; o.value = histSrc[i];
+        sel.add(o);
+    }
+    sel.selectedIndex = 0;
+}
+
+function onHistPick(){
+    var sel = byId("srcHist");
+    if (sel.value){ byId("source").value = sel.value; }
+    sel.selectedIndex = 0;
+}
+
+function detectPython(){
+    var sh = new ActiveXObject("WScript.Shell");
+    var fso = new ActiveXObject("Scripting.FileSystemObject");
+    var tmp = fso.GetSpecialFolder(2) + "\\_pychk_" + Math.floor(Math.random()*1e8) + ".txt";
+    var cands = ["py -2", "C:\\Python27\\python.exe"];
+    for (var i=0;i<cands.length;i++){
+        var cmd = 'cmd /c ' + cands[i] + ' -c "import sys;sys.exit(0 if sys.version_info[0]==2 else 1)" > "' + tmp + '" 2>&1';
+        var rc = sh.Run(cmd, 0, true);
+        if (rc === 0){ try{fso.DeleteFile(tmp);}catch(e){} return cands[i]; }
+    }
+    try{fso.DeleteFile(tmp);}catch(e){}
+    return "";
+}
+
+function pickFile(){ byId("picker").click(); }
+function onPicked(){ var v = byId("picker").value; if (v) byId("source").value = v; }
+
+function pickFolder(){
+    try {
+        var shell = new ActiveXObject("Shell.Application");
+        var folder = shell.BrowseForFolder(0, "选择目录（递归构建目录下所有 .py）", 0, "");
+        if (folder != null){ byId("source").value = folder.Self.Path; }
+    } catch(e){ appendLog("[ERROR] 选择目录失败: " + e.message); }
+}
+
+function appendLog(s){ var t = byId("log"); t.value += s + "\r\n"; t.scrollTop = t.scrollHeight; }
+function setStatus(txt, cls){ var s = byId("status"); s.className = cls || ""; s.innerHTML = txt; }
+
+function buildBin(){
+    var src = byId("source").value;
+    if (!src){ alert("请填写或选择源 .py 文件（...\\output\\common\\...）"); return; }
+
+    if (!PY){ PY = detectPython(); }
+    if (!PY){ setStatus("未找到 Python 2.7", "fail"); alert("未找到 Python 2.7（bindict.pyd 是 py2 C 扩展）。请安装 Python 2.7 或确认 C:\\Python27\\python.exe 存在"); return; }
+
+    byId("btn").disabled = true;
+    setStatus("构建中...", "run");
+    byId("log").value = "";
+
+    var fso = new ActiveXObject("Scripting.FileSystemObject");
+    var sh = new ActiveXObject("WScript.Shell");
+    var script = SCRIPT_DIR + "\\build_bindict.py";
+    if (!fso.FileExists(script)){ setStatus("找不到脚本", "fail"); appendLog("[ERROR] 缺少 " + script); byId("btn").disabled=false; return; }
+
+    var tmp = fso.GetSpecialFolder(2) + "\\_bin_out_" + Math.floor(Math.random()*1e8) + ".txt";
+    var force = byId("force").checked ? " --force" : "";
+    var cmd = 'cmd /c ' + PY + ' "' + script + '" "' + src + '"' + force + ' > "' + tmp + '" 2>&1';
+
+    appendLog("[CMD] " + cmd);
+    var rc = sh.Run(cmd, 0, true);
+
+    var output = "";
+    try {
+        if (fso.FileExists(tmp)){
+            var f = fso.OpenTextFile(tmp, 1, false, -2);
+            if (!f.AtEndOfStream) output = f.ReadAll();
+            f.Close(); fso.DeleteFile(tmp);
+        }
+    } catch(e){ output = "(读取输出失败: " + e.message + ")"; }
+    appendLog(output);
+
+    if (rc === 0){
+        var m = output.match(/built (\d+) \/ up-to-date (\d+) \/ code-dep (\d+) \/ no-target (\d+) \/ FAILED (\d+)/);
+        if (m){
+            var b = parseInt(m[1],10), u = parseInt(m[2],10), c = parseInt(m[3],10);
+            var msg = "完成：本次构建 " + b + " 个，最新跳过 " + u + " 个";
+            if (c > 0) msg += "，代码依赖 " + c + " 个(需官方导出)";
+            msg += (b > 0) ? " → 回编辑器【重开地图】生效" : "（无改动，无需重开）";
+            setStatus(msg, "ok");
+        } else {
+            setStatus("完成 → 回编辑器【重开地图】生效", "ok");
+        }
+        histSrc = pushHist(histSrc, src);
+        saveHistory();
+        refreshSelects();
+    } else {
+        setStatus("失败 (exit " + rc + ")，见日志 [FAILED]", "fail");
+    }
+    byId("btn").disabled = false;
+}
+
+window.onload = function(){
+    initDirs();
+    loadHistory();
+    refreshSelects();
+    byId("source").value = histSrc.length ? histSrc[0] : "D:\\EggyData\\season\\output\\common\\ogc\\ogc3_auto_chess\\auto_chess_projectile_data.py";
+    setStatus("就绪", "");
+    appendLog("[INFO] 脚本目录: " + SCRIPT_DIR);
+    appendLog("[INFO] 输出自动部署到 output\\bindict_res + client\\res\\bindict");
+};
+</script>
+</head>
+<body>
+<h1>Py 转编辑器 bindict</h1>
+<div class="sub">编辑器加载的是 res\bindict 下的 .bin（bindict.build 产物），不是 .py/.pyc。本工具从源 .py 构建 .bin 并自动部署；改完回编辑器【重开地图】即生效（不用整进程重启）。</div>
+
+<div class="sec">
+    <div class="row">
+        <label>源 .py 文件 或 目录（可直接输入 / 粘贴）</label>
+        <div class="inline">
+            <input id="source" type="text" />
+            <select id="srcHist" class="hist" onchange="onHistPick()"></select>
+            <button class="sm" onclick="pickFile()">选文件</button>
+            <button class="sm" onclick="pickFolder()">选目录</button>
+        </div>
+        <div class="hint">选文件=编单张；选目录=递归增量构建（只编改过的、跳过 .bin 比 .py 新的，跳过 __init__.py）。勾「强制全量」则全部重编。支持散文件(client\script\data\...)或 D 源(...\output\...)。日志底部 SUMMARY 里 [BUILT & DEPLOYED] 就是本次实际生效的改动。</div>
+    </div>
+    <button id="btn" onclick="buildBin()">构 建 并 部 署</button>
+    &nbsp;<label style="display:inline;font-weight:normal;"><input type="checkbox" id="force" /> 强制全量重编</label>
+    &nbsp;&nbsp;当前状态：<span id="status">就绪</span>
+</div>
+
+<div class="sec">
+    <label>日志</label>
+    <textarea id="log" readonly></textarea>
+</div>
+
+<input id="picker" type="file" style="display:none" onchange="onPicked()" />
+</body>
+</html>

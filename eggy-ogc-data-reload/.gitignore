@@ -1,0 +1,4 @@
+# local runtime state, do not sync
+scripts/_bindict_history.txt
+_bindict_history.txt
+scripts/_bin_out_*.txt
