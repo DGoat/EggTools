@@ -38,9 +38,10 @@ description: 修改蛋仔派对编辑器（OGC/自走棋）数据表并让编辑
    ```
 
    自动写入 `output\bindict_res\...` 与 `client\res\bindict\...`。
-3. **编辑态按 F5** → 再**试玩**验证。（F5 钩子会重读所有 `.bin` 替换 `module.data`，并把 OGC 数据表模块从 `sys.modules` 清掉，逼下次试玩 OgcMgr 重 import 时读新 `.bin`。）
+3. **先试玩一次**（让 OGC 加载该数据表模块）→ 停 → **编辑态按 F5**（钩子原地刷新已加载的 `.bin` 模块 `.data`）→ **再试玩**验证。
 
-> 兜底：没装钩子时用**重开地图**（退回项目列表→重开地图）也会重读 `.bin`。
+> 关键：F5 只能刷新**已在 `sys.modules` 里**的数据表（本次开图后试玩加载过的）。没试玩过的表 F5 碰不到——首次请直接**重开地图**。
+> 兜底：任何情况下**重开地图**（退回项目列表→重开）都会从 `.bin` 重新加载，最稳。
 
 ---
 
@@ -52,7 +53,7 @@ F5 = `reload_tool.toolset.reload_script`，原本只热重载**代码**（函数
 
 | 文件 | 作用 |
 |------|------|
-| `bindict_hot.py` | 遍历 `sys.modules` 里所有 bindict 模块 → 从 `__file__`（`<bindict/...>`）反推 `res\bindict\...\xxx.bin` → 重读 → `module.data = bindict.bindict(raw)`；OGC 表再 `del sys.modules[name]` 逼重 import |
+| `bindict_hot.py` | 遍历 `sys.modules` 里所有 bindict 模块 → 从 `__file__`（`<bindict/...>`）反推 `res\bindict\...\xxx.bin` → 重读 → **原地** `module.data = bindict.bindict(raw)`（**保留模块对象身份**，不删 `sys.modules`） |
 | `__init__.py` | 包装 `toolset.reload_script`，原逻辑后追加 `bindict_hot.reload_bindict_data()`，全 `try/except` |
 
 **装完必须整进程重启一次**（`reload_tool` 是重载器自身的包，**F5 不会重载它**，所以对这两个文件的任何修改都只能靠重启生效；数据表改动则只需 F5）。
@@ -68,7 +69,8 @@ F5 = `reload_tool.toolset.reload_script`，原本只热重载**代码**（函数
 
 **踩过的坑**：
 - 遍历 `sys.modules` 时 `getattr(mod,'__file__')` 会触发某些**惰性模块代理**去 `import sndhdr`（NeoX 裁剪了该 stdlib）而抛异常，中断整个循环。→ 用 `mod.__dict__.get('__file__')` 绕过，且**每个模块单独 try/except**。
-- 只替换 `module.data` 不够：OGC 代码被 OgcMgr 重 import 时会复用 `sys.modules` 里缓存的旧数据模块。→ 必须 `del sys.modules[name]` 让它重读 `.bin`。
+- **只能原地更新 `module.data`，不能 `del sys.modules[name]`**：OGC 的 `custom.pub.ogc...data_config` 在 import 时把数据表**模块对象**存成自己的属性（`data_config.auto_chess_projectile_data`），消费方读 `.data[id]`。原地 `module.data = fresh` 保留对象身份 → 该属性指向的对象 `.data` 被就地刷新 → 消费方立即见新值。若 `del sys.modules`，模块缺席、身份丢失，`data_config` 仍抱旧对象 → 值卡住不变（曾因此踩坑）。
+- **前提**：F5 时该数据表模块必须已在 `sys.modules`（即本次开图后**至少试玩过一次**、加载过它）。所以流程是：先试玩一次加载 → 停 → 改 `.bin` → F5（原地刷新活模块）→ 再试玩。
 
 **回退**：删这两个文件（`svn revert reload_tool`），重启即恢复。
 

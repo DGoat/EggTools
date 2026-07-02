@@ -59,7 +59,6 @@ def reload_bindict_data(only_modified=True):
 
     n = 0
     seen = 0
-    ogc_purged = 0
     # snapshot names first; accessing some lazy module proxies (e.g. via getattr)
     # can trigger imports of stripped stdlib (sndhdr) and raise -- guard each one.
     for name in list(sys.modules.keys()):
@@ -77,12 +76,6 @@ def reload_bindict_data(only_modified=True):
             if not binp:
                 continue
 
-            # OGC tables are consumed by custom.*.ogc code that OgcMgr re-imports
-            # on F5. That re-import reuses the CACHED data module (old bytes), so
-            # just replacing .data isn't enough -- purge it from sys.modules so
-            # the next import re-reads the .bin fresh.
-            is_ogc = ('.ogc.' in name) or (os.sep + 'ogc' + os.sep in f.lower())
-
             try:
                 mt = os.path.getmtime(binp)
             except OSError:
@@ -92,17 +85,16 @@ def reload_bindict_data(only_modified=True):
             raw = fh.read()
             fh.close()
             new_data = bindict.bindict(raw)
-            mod.data = new_data          # help any lazy in-place reader
+            # IN-PLACE update: keep the module object identity so consumers that
+            # captured the module ref (e.g. custom.*.ogc data_config holds
+            # `auto_chess_projectile_data` as an attribute) see the new .data.
+            # Do NOT del sys.modules -- that breaks the live ref and the value
+            # goes stale until the map is reopened.
+            mod.data = new_data
             _last_mtime[name] = mt
             n += 1
             print '[bindict-hot] refreshed %s <- %s' % (name, binp)
-            if is_ogc:
-                del sys.modules[name]    # force clean re-import by OGC code
-                _last_mtime.pop(name, None)
-                ogc_purged += 1
-                print '[bindict-hot] purged OGC module %s (will re-import fresh)' % name
         except Exception as e:
             print '[bindict-hot] FAIL %s : %s' % (name, e)
-    print '[bindict-hot] F5: bindict modules seen=%d refreshed=%d ogc_purged=%d' % (
-        seen, n, ogc_purged)
+    print '[bindict-hot] F5: bindict modules seen=%d refreshed=%d' % (seen, n)
     return n
