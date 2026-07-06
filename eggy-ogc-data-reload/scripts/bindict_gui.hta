@@ -3,10 +3,10 @@
 <head>
 <meta http-equiv="X-UA-Compatible" content="IE=9" />
 <meta charset="utf-8" />
-<title>Py 转编辑器 bindict</title>
+<title>Py 编译工具</title>
 <HTA:APPLICATION
     ID="BinApp"
-    APPLICATIONNAME="Py to Editor bindict"
+    APPLICATIONNAME="Py Compile Toolkit"
     BORDER="thin"
     CAPTION="yes"
     SHOWINTASKBAR="yes"
@@ -19,6 +19,7 @@ body { margin:0; padding:16px; font-family:"Microsoft YaHei",Arial,sans-serif; f
 h1 { margin:0 0 4px 0; font-size:18px; }
 .sub { color:#64748b; font-size:12px; margin-bottom:12px; }
 .sec { background:#fff; border:1px solid #d7dde3; border-radius:6px; padding:12px; margin-bottom:10px; }
+.sec h2 { margin:0 0 8px 0; font-size:14px; color:#334155; }
 .row { margin-bottom:10px; }
 label { display:block; font-weight:bold; margin-bottom:4px; }
 input[type=text] { width:100%; box-sizing:border-box; padding:6px; border:1px solid #b8c2cc; border-radius:4px; font-family:Consolas,monospace; }
@@ -27,8 +28,9 @@ input[type=text] { width:100%; box-sizing:border-box; padding:6px; border:1px so
 select.hist { width:150px; padding:6px; border:1px solid #b8c2cc; border-radius:4px; }
 button { padding:7px 14px; border:0; border-radius:4px; background:#2563eb; color:#fff; font-weight:bold; cursor:pointer; }
 button.sm { padding:6px 9px; background:#64748b; font-weight:normal; }
+button.g { background:#059669; }
 button:disabled { background:#9aa5b1; cursor:default; }
-#log { width:100%; height:220px; box-sizing:border-box; margin-top:6px; font-family:Consolas,monospace; font-size:12px; border:1px solid #b8c2cc; border-radius:4px; padding:8px; background:#0f172a; color:#e2e8f0; }
+#log { width:100%; height:200px; box-sizing:border-box; margin-top:6px; font-family:Consolas,monospace; font-size:12px; border:1px solid #b8c2cc; border-radius:4px; padding:8px; background:#0f172a; color:#e2e8f0; }
 #status { font-weight:bold; }
 .ok { color:#16a34a; } .fail { color:#dc2626; } .run { color:#2563eb; }
 .hint { color:#64748b; font-size:12px; margin-top:4px; }
@@ -39,6 +41,8 @@ var HIST_FILE = "";
 var PY = "";
 var MAX_HIST = 15;
 var histSrc = [];
+var DEFAULT_RELOAD_DIR = "G:\\resource\\season\\client\\script\\reload_tool";
+var savedReloadDir = "";
 
 function byId(id){ return document.getElementById(id); }
 
@@ -52,6 +56,7 @@ function initDirs(){
 
 function loadHistory(){
     histSrc = [];
+    savedReloadDir = "";
     try {
         var fso = new ActiveXObject("Scripting.FileSystemObject");
         if (!fso.FileExists(HIST_FILE)) return;
@@ -59,7 +64,10 @@ function loadHistory(){
         while (!f.AtEndOfStream){
             var line = f.ReadLine();
             if (line.length < 2) continue;
-            if (line.substring(0,1) == "S" && line.substring(2)) histSrc[histSrc.length] = line.substring(2);
+            var tag = line.substring(0,1);
+            var val = line.substring(2);
+            if (tag == "S" && val) histSrc[histSrc.length] = val;
+            else if (tag == "R" && val) savedReloadDir = val;
         }
         f.Close();
     } catch(e){}
@@ -70,6 +78,8 @@ function saveHistory(){
         var fso = new ActiveXObject("Scripting.FileSystemObject");
         var f = fso.CreateTextFile(HIST_FILE, true, true);
         for (var i=0;i<histSrc.length;i++) f.WriteLine("S\t" + histSrc[i]);
+        var rd = byId("reloadDir") ? byId("reloadDir").value : savedReloadDir;
+        if (rd) f.WriteLine("R\t" + rd);
         f.Close();
     } catch(e){ appendLog("[WARN] 保存历史失败: " + e.message); }
 }
@@ -129,6 +139,14 @@ function pickFolder(){
     } catch(e){ appendLog("[ERROR] 选择目录失败: " + e.message); }
 }
 
+function pickReloadDir(){
+    try {
+        var shell = new ActiveXObject("Shell.Application");
+        var folder = shell.BrowseForFolder(0, "选择编辑器 reload_tool 目录", 0, "");
+        if (folder != null){ byId("reloadDir").value = folder.Self.Path; }
+    } catch(e){ appendLog("[ERROR] 选择目录失败: " + e.message); }
+}
+
 function appendLog(s){ var t = byId("log"); t.value += s + "\r\n"; t.scrollTop = t.scrollHeight; }
 function setStatus(txt, cls){ var s = byId("status"); s.className = cls || ""; s.innerHTML = txt; }
 
@@ -171,10 +189,10 @@ function buildBin(){
             var b = parseInt(m[1],10), u = parseInt(m[2],10), c = parseInt(m[3],10);
             var msg = "完成：本次构建 " + b + " 个，最新跳过 " + u + " 个";
             if (c > 0) msg += "，代码依赖 " + c + " 个(需官方导出)";
-            msg += (b > 0) ? " → 回编辑器【重开地图】生效" : "（无改动，无需重开）";
+            msg += (b > 0) ? " → 回编辑器按 F5 生效（首次开图未加载的表请重开地图）" : "（无改动）";
             setStatus(msg, "ok");
         } else {
-            setStatus("完成 → 回编辑器【重开地图】生效", "ok");
+            setStatus("完成 → 回编辑器按 F5 生效", "ok");
         }
         histSrc = pushHist(histSrc, src);
         saveHistory();
@@ -185,22 +203,91 @@ function buildBin(){
     byId("btn").disabled = false;
 }
 
+function touchNow(fso, sh, path){
+    // 把文件时间戳更新为当前时间，确保编辑器加载 .py 源码而非旧 .pyc
+    try {
+        sh.Run('powershell -NoProfile -Command "(Get-Item \'' + path + '\').LastWriteTime = Get-Date"', 0, true);
+        return true;
+    } catch(e){ return false; }
+}
+
+function restoreHook(){
+    var fso = new ActiveXObject("Scripting.FileSystemObject");
+    var sh = new ActiveXObject("WScript.Shell");
+    var rd = byId("reloadDir").value;
+    if (!rd){ alert("请填写编辑器 reload_tool 目录"); return; }
+
+    var srcHook = SCRIPT_DIR + "\\hook";
+    var f1 = srcHook + "\\bindict_hot.py";
+    var f2 = srcHook + "\\__init__.py";
+    if (!fso.FileExists(f1) || !fso.FileExists(f2)){
+        setStatus("归档缺失", "fail"); appendLog("[ERROR] 归档缺少 hook 文件: " + srcHook); return;
+    }
+    if (!fso.FolderExists(rd)){
+        setStatus("目录不存在", "fail"); appendLog("[ERROR] reload_tool 不存在: " + rd); return;
+    }
+
+    setStatus("恢复中...", "run");
+    try {
+        fso.CopyFile(f1, rd + "\\bindict_hot.py", true);
+        fso.CopyFile(f2, rd + "\\__init__.py", true);
+        appendLog("[OK] 已恢复 bindict_hot.py + __init__.py -> " + rd);
+
+        // 若 __init__.pyc 比 __init__.py 新，编辑器会加载旧空 pyc -> 把 .py 时间戳刷新为最新
+        var pyc = rd + "\\__init__.pyc";
+        if (fso.FileExists(pyc)){
+            var pyF = fso.GetFile(rd + "\\__init__.py");
+            var pycF = fso.GetFile(pyc);
+            if (pycF.DateLastModified >= pyF.DateLastModified){
+                touchNow(fso, sh, rd + "\\__init__.py");
+                touchNow(fso, sh, rd + "\\bindict_hot.py");
+                appendLog("[FIX] __init__.pyc 较新 -> 已把 __init__.py/bindict_hot.py 时间戳刷新为当前（确保加载源码）");
+            }
+        }
+        saveHistory();
+        setStatus("钩子已恢复 → 重启编辑器后生效（日志见 [bindict-hot] F5 hook installed）", "ok");
+    } catch(e){ setStatus("恢复失败", "fail"); appendLog("[ERROR] " + e.message); }
+}
+
+function checkHook(){
+    var fso = new ActiveXObject("Scripting.FileSystemObject");
+    var rd = byId("reloadDir").value;
+    if (!rd){ alert("请填写编辑器 reload_tool 目录"); return; }
+    appendLog("[CHECK] " + rd);
+    var hasInit = fso.FileExists(rd + "\\__init__.py");
+    var hasHot  = fso.FileExists(rd + "\\bindict_hot.py");
+    appendLog("  __init__.py   : " + (hasInit ? "存在" : "缺失!"));
+    appendLog("  bindict_hot.py: " + (hasHot ? "存在" : "缺失!"));
+    if (!hasInit || !hasHot){ setStatus("钩子丢失 → 点【恢复钩子】", "fail"); return; }
+    var pyc = rd + "\\__init__.pyc";
+    if (fso.FileExists(pyc)){
+        var pyF = fso.GetFile(rd + "\\__init__.py");
+        var pycF = fso.GetFile(pyc);
+        var pyNewer = pyF.DateLastModified > pycF.DateLastModified;
+        appendLog("  __init__.pyc  : 存在 (" + (pyNewer ? "py 较新 OK" : "pyc 较新! 需刷新 py 时间戳") + ")");
+        if (!pyNewer){ setStatus("警告：__init__.pyc 较新，重启会加载旧空 pyc → 点【恢复钩子】修复", "fail"); return; }
+    }
+    setStatus("钩子在位且有效（重启后即装载）", "ok");
+}
+
 window.onload = function(){
     initDirs();
     loadHistory();
     refreshSelects();
     byId("source").value = histSrc.length ? histSrc[0] : "D:\\EggyData\\season\\output\\common\\ogc\\ogc3_auto_chess\\auto_chess_projectile_data.py";
+    byId("reloadDir").value = savedReloadDir ? savedReloadDir : DEFAULT_RELOAD_DIR;
     setStatus("就绪", "");
     appendLog("[INFO] 脚本目录: " + SCRIPT_DIR);
-    appendLog("[INFO] 输出自动部署到 output\\bindict_res + client\\res\\bindict");
+    appendLog("[INFO] 构建输出 -> output\\bindict_res + client\\res\\bindict；钩子归档 -> scripts\\hook");
 };
 </script>
 </head>
 <body>
-<h1>Py 转编辑器 bindict</h1>
-<div class="sub">编辑器加载的是 res\bindict 下的 .bin（bindict.build 产物），不是 .py/.pyc。本工具从源 .py 构建 .bin 并自动部署；改完回编辑器【重开地图】即生效（不用整进程重启）。</div>
+<h1>Py 编译工具</h1>
+<div class="sub">① 把数据表 .py 构建成编辑器加载的 .bin（bindict.build 产物） ② 恢复/检查 F5 热更钩子。构建后回编辑器按 F5 即生效（首次开图未加载过的表请重开地图）。</div>
 
 <div class="sec">
+    <h2>① 构建 bindict（.py → .bin）</h2>
     <div class="row">
         <label>源 .py 文件 或 目录（可直接输入 / 粘贴）</label>
         <div class="inline">
@@ -213,10 +300,24 @@ window.onload = function(){
     </div>
     <button id="btn" onclick="buildBin()">构 建 并 部 署</button>
     &nbsp;<label style="display:inline;font-weight:normal;"><input type="checkbox" id="force" /> 强制全量重编</label>
-    &nbsp;&nbsp;当前状态：<span id="status">就绪</span>
 </div>
 
 <div class="sec">
+    <h2>② F5 热更钩子（恢复 / 检查）</h2>
+    <div class="row">
+        <label>编辑器 reload_tool 目录</label>
+        <div class="inline">
+            <input id="reloadDir" type="text" />
+            <button class="sm" onclick="pickReloadDir()">选目录</button>
+        </div>
+        <div class="hint">把 scripts\hook\ 里的 bindict_hot.py + __init__.py 拷回 reload_tool（svn 清理等会丢失未受控文件）。若 __init__.pyc 较新会自动刷新 .py 时间戳。恢复后需<b>重启编辑器</b>装载。</div>
+    </div>
+    <button class="g" onclick="restoreHook()">恢 复 钩 子</button>
+    &nbsp;<button class="sm" onclick="checkHook()">检查钩子状态</button>
+</div>
+
+<div class="sec">
+    <div style="margin-bottom:6px;">当前状态：<span id="status">就绪</span></div>
     <label>日志</label>
     <textarea id="log" readonly></textarea>
 </div>
