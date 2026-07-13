@@ -53,3 +53,18 @@ sticky-notes/
 ## Build
 
 Add `electron-builder` and run `npm run dist` to package a distributable.
+
+The NSIS installer is written to `dist/Sticky Notes Setup <version>.exe`.
+
+## Release
+
+Publish the installer to a GitHub Release in one command:
+
+```bash
+npm run release
+```
+
+This builds the installer, then creates (or reuses) the `v<version>` release on
+`DGoat/EggTools` and uploads the `.exe`. The GitHub token is taken from the
+`GITHUB_TOKEN` env var, or falls back to the local Git credential store — no
+secret is stored in the repo. Override the target repo with `GH_REPO=owner/name`.
