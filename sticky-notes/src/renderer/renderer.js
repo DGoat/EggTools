@@ -1,5 +1,15 @@
 const noteId = new URLSearchParams(location.search).get('id');
 
+const COLOR_HEX = {
+  yellow: '#fdf6a8',
+  green: '#d3f7c4',
+  pink: '#ffd6e0',
+  purple: '#e4d4ff',
+  blue: '#cfecff',
+  gray: '#e9e9e9',
+  charcoal: '#3a3a3a'
+};
+
 const editor = document.getElementById('editor');
 const titlebar = document.getElementById('titlebar');
 const addBtn = document.getElementById('addBtn');
@@ -33,8 +43,8 @@ async function init() {
   const colors = await window.notesAPI.colors();
   colors.forEach((c) => {
     const sw = document.createElement('div');
-    sw.className = 'swatch theme-' + c;
-    sw.style.background = getComputedStyle(document.querySelector('.theme-' + c) || document.body).getPropertyValue('--bg');
+    sw.className = 'swatch';
+    sw.style.background = COLOR_HEX[c] || '#ffffff';
     sw.title = c;
     if (note && note.color === c) sw.classList.add('active');
     sw.addEventListener('click', () => {

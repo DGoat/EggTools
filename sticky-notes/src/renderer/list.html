@@ -8,18 +8,51 @@
 </head>
 <body>
   <header class="list-titlebar" id="titlebar">
-    <span class="list-title">Sticky Notes</span>
+    <span class="list-title">EggTools</span>
     <div class="tb-spacer"></div>
-    <button class="tb-btn" id="newBtn" title="New note">+</button>
+    <button class="tb-btn" id="closeWin" title="Close">&#10005;</button>
   </header>
 
-  <div class="search-wrap">
-    <input type="text" id="search" placeholder="Search notes..." />
-  </div>
+  <nav class="tabs">
+    <button class="tab active" data-tab="notes">Notes</button>
+    <button class="tab" data-tab="todos">Daily Todos</button>
+  </nav>
 
-  <div class="note-list" id="noteList"></div>
+  <!-- Notes tab -->
+  <section class="tab-panel active" id="panel-notes">
+    <div class="row">
+      <input type="text" id="noteSearch" placeholder="Search notes..." />
+      <button class="primary" id="newNoteBtn" title="New note">+</button>
+    </div>
+    <div class="scroll" id="noteList"></div>
+    <div class="empty" id="noteEmpty" hidden>No notes yet.</div>
+  </section>
 
-  <div class="empty" id="empty" hidden>No notes yet. Click + to create one.</div>
+  <!-- Todos tab -->
+  <section class="tab-panel" id="panel-todos" hidden>
+    <div class="date-bar">
+      <button class="nav" id="prevDay" title="Previous day">&#8249;</button>
+      <span id="dateLabel"></span>
+      <button class="nav" id="nextDay" title="Next day">&#8250;</button>
+      <button class="today-btn" id="todayBtn">Today</button>
+    </div>
+
+    <div class="row">
+      <input type="text" id="todoInput" placeholder="Add a to-do... (Enter)" />
+      <button class="primary" id="addTodoBtn">+</button>
+    </div>
+
+    <div class="row search-row">
+      <input type="text" id="todoSearch" placeholder="Search all todos..." />
+      <select id="searchMode">
+        <option value="exact">精确</option>
+        <option value="fuzzy">模糊</option>
+      </select>
+    </div>
+
+    <div class="scroll" id="todoList"></div>
+    <div class="empty" id="todoEmpty" hidden>No to-dos for this day.</div>
+  </section>
 
   <script src="list.js"></script>
 </body>

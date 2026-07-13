@@ -1,13 +1,10 @@
 const { app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage } = require('electron');
 const path = require('path');
-const fs = require('fs');
+const store = require('./store');
 
-const dataFile = path.join(app.getPath('userData'), 'notes.json');
-const settingsFile = path.join(app.getPath('userData'), 'settings.json');
 const iconPath = path.join(__dirname, '..', 'assets', 'icon.png');
+const settingsFile = path.join(app.getPath('userData'), 'settings.json');
 
-// id -> note object { id, content, color, bounds, open }
-let notes = {};
 // id -> BrowserWindow
 const windows = new Map();
 let listWin = null;
@@ -16,44 +13,19 @@ let settings = { autoLaunch: false };
 
 const COLORS = ['yellow', 'green', 'pink', 'purple', 'blue', 'gray', 'charcoal'];
 
-function loadNotes() {
-  try {
-    notes = JSON.parse(fs.readFileSync(dataFile, 'utf-8'));
-  } catch {
-    notes = {};
-  }
-}
-
-function saveNotes() {
-  try {
-    fs.writeFileSync(dataFile, JSON.stringify(notes, null, 2));
-  } catch (err) {
-    console.error('Failed to save notes:', err);
-  }
-}
-
+const fs = require('fs');
 function loadSettings() {
   try {
     settings = Object.assign(settings, JSON.parse(fs.readFileSync(settingsFile, 'utf-8')));
-  } catch {
-    // keep defaults
-  }
+  } catch { /* defaults */ }
 }
-
 function saveSettings() {
   try {
     fs.writeFileSync(settingsFile, JSON.stringify(settings, null, 2));
-  } catch (err) {
-    console.error('Failed to save settings:', err);
-  }
+  } catch { /* ignore */ }
 }
-
 function applyAutoLaunch() {
   app.setLoginItemSettings({ openAtLogin: !!settings.autoLaunch });
-}
-
-function genId() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
 function noteTitle(note) {
@@ -89,16 +61,12 @@ function createNoteWindow(note) {
     }
   });
 
-  win.loadFile(path.join(__dirname, 'renderer', 'index.html'), {
-    query: { id: note.id }
-  });
+  win.loadFile(path.join(__dirname, 'renderer', 'index.html'), { query: { id: note.id } });
 
   const persistBounds = () => {
     if (win.isDestroyed()) return;
-    if (notes[note.id]) {
-      notes[note.id].bounds = win.getBounds();
-      saveNotes();
-    }
+    const notes = store.getNotes();
+    if (notes[note.id]) store.patchNote(note.id, { bounds: win.getBounds() });
   };
   win.on('resize', persistBounds);
   win.on('move', persistBounds);
@@ -112,7 +80,7 @@ function createNoteWindow(note) {
 }
 
 function newNote() {
-  const id = genId();
+  const id = store.genId();
   const cursor = screen.getCursorScreenPoint();
   const display = screen.getDisplayNearestPoint(cursor);
   const offset = Math.floor(Math.random() * 40);
@@ -128,40 +96,36 @@ function newNote() {
       height: 300
     }
   };
-  notes[id] = note;
-  saveNotes();
+  store.setNote(id, note);
   createNoteWindow(note);
   refreshList();
   return note;
 }
 
 function openNote(id) {
+  const notes = store.getNotes();
   if (!notes[id]) return;
-  notes[id].open = true;
-  saveNotes();
+  store.patchNote(id, { open: true });
   createNoteWindow(notes[id]);
   refreshList();
 }
 
 function hideNote(id) {
-  if (notes[id]) {
-    notes[id].open = false;
-    saveNotes();
-  }
+  const notes = store.getNotes();
+  if (notes[id]) store.patchNote(id, { open: false });
   const w = windows.get(id);
   if (w && !w.isDestroyed()) w.close();
   refreshList();
 }
 
 function deleteNote(id) {
-  delete notes[id];
-  saveNotes();
+  store.removeNote(id);
   const w = windows.get(id);
   if (w && !w.isDestroyed()) w.close();
   refreshList();
 }
 
-// ---- List window ----
+// ---- Overview window (Notes + Todos tabs) ----
 function createListWindow() {
   if (listWin && !listWin.isDestroyed()) {
     listWin.show();
@@ -169,8 +133,8 @@ function createListWindow() {
     return;
   }
   listWin = new BrowserWindow({
-    width: 300,
-    height: 460,
+    width: 340,
+    height: 520,
     frame: false,
     skipTaskbar: false,
     icon: iconPath,
@@ -182,9 +146,16 @@ function createListWindow() {
     }
   });
   listWin.loadFile(path.join(__dirname, 'renderer', 'list.html'));
-  listWin.on('closed', () => {
-    listWin = null;
-  });
+  listWin.on('closed', () => { listWin = null; });
+}
+
+function getNoteSummaries() {
+  return Object.values(store.getNotes()).map((n) => ({
+    id: n.id,
+    title: noteTitle(n),
+    color: n.color || 'yellow',
+    open: windows.has(n.id)
+  }));
 }
 
 function refreshList() {
@@ -193,20 +164,11 @@ function refreshList() {
   }
 }
 
-function getNoteSummaries() {
-  return Object.values(notes).map((n) => ({
-    id: n.id,
-    title: noteTitle(n),
-    color: n.color || 'yellow',
-    open: windows.has(n.id)
-  }));
-}
-
 // ---- Tray ----
 function buildTrayMenu() {
   return Menu.buildFromTemplate([
     { label: 'New Note', click: () => newNote() },
-    { label: 'Notes List', click: () => createListWindow() },
+    { label: 'Overview', click: () => createListWindow() },
     { type: 'separator' },
     {
       label: 'Launch at Startup',
@@ -219,13 +181,7 @@ function buildTrayMenu() {
       }
     },
     { type: 'separator' },
-    {
-      label: 'Quit',
-      click: () => {
-        app.isQuitting = true;
-        app.quit();
-      }
-    }
+    { label: 'Quit', click: () => { app.isQuitting = true; app.quit(); } }
   ]);
 }
 
@@ -246,11 +202,13 @@ if (!gotLock) {
   app.on('second-instance', () => createListWindow());
 
   app.whenReady().then(() => {
-    loadNotes();
+    store.ensureRepo();
+    store.ensureToday();
     loadSettings();
     applyAutoLaunch();
     createTray();
 
+    const notes = store.getNotes();
     const openIds = Object.keys(notes).filter((id) => notes[id].open !== false);
     if (Object.keys(notes).length === 0) {
       newNote();
@@ -264,27 +222,31 @@ if (!gotLock) {
   });
 }
 
-ipcMain.handle('note:get', (_e, id) => notes[id] || null);
-
+// ---- Note IPC ----
+ipcMain.handle('note:get', (_e, id) => store.getNotes()[id] || null);
 ipcMain.handle('note:save', (_e, { id, patch }) => {
-  if (!notes[id]) return false;
-  notes[id] = Object.assign(notes[id], patch);
-  saveNotes();
+  const ok = store.patchNote(id, patch);
   refreshList();
-  return true;
+  return ok;
 });
-
 ipcMain.handle('note:new', () => newNote().id);
 ipcMain.handle('note:open', (_e, id) => openNote(id));
 ipcMain.handle('note:delete', (_e, id) => deleteNote(id));
 ipcMain.handle('note:close', (_e, id) => hideNote(id));
 ipcMain.handle('note:colors', () => COLORS);
 
-// List IPC
+// ---- List IPC ----
 ipcMain.handle('list:all', () => getNoteSummaries());
 ipcMain.handle('list:new', () => newNote().id);
 
-// Prevent quitting when all note windows are closed (tray keeps app alive)
-app.on('window-all-closed', () => {
-  // no-op: app stays in tray until explicitly quit
-});
+// ---- Todo IPC ----
+ipcMain.handle('todo:today', () => store.ensureToday());
+ipcMain.handle('todo:day', (_e, dateStr) => store.getDay(dateStr));
+ipcMain.handle('todo:add', (_e, { date, text }) => store.addTodo(date, text));
+ipcMain.handle('todo:update', (_e, { date, id, patch }) => store.updateTodo(date, id, patch));
+ipcMain.handle('todo:delete', (_e, { date, id }) => store.deleteTodo(date, id));
+ipcMain.handle('todo:search', (_e, { query, mode }) => store.searchTodos(query, mode));
+ipcMain.handle('todo:dates', () => store.listTodoDates());
+
+// Keep app resident in tray
+app.on('window-all-closed', () => { /* no-op */ });
