@@ -1,0 +1,192 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg: #fdf6a8;
+  --bar: #fbec6a;
+  --text: #2b2b2b;
+  --muted: rgba(0, 0, 0, 0.5);
+  --hover: rgba(0, 0, 0, 0.08);
+}
+
+/* Color themes (Sticky Notes style) */
+.theme-yellow   { --bg: #fdf6a8; --bar: #fbec6a; --text: #2b2b2b; }
+.theme-green    { --bg: #d3f7c4; --bar: #b8ef9f; --text: #2b2b2b; }
+.theme-pink     { --bg: #ffd6e0; --bar: #ffbdcd; --text: #2b2b2b; }
+.theme-purple   { --bg: #e4d4ff; --bar: #d3bbff; --text: #2b2b2b; }
+.theme-blue     { --bg: #cfecff; --bar: #b3e0ff; --text: #2b2b2b; }
+.theme-gray     { --bg: #e9e9e9; --bar: #dcdcdc; --text: #2b2b2b; }
+.theme-charcoal { --bg: #3a3a3a; --bar: #2c2c2c; --text: #f2f2f2; --muted: rgba(255,255,255,0.6); --hover: rgba(255,255,255,0.12); }
+
+html, body {
+  height: 100%;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+  font-size: 14px;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* Title bar (draggable) */
+.titlebar {
+  -webkit-app-region: drag;
+  display: flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 4px;
+  background: var(--bar);
+  flex-shrink: 0;
+}
+
+.tb-spacer {
+  flex: 1;
+}
+
+.tb-btn {
+  -webkit-app-region: no-drag;
+  width: 30px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.tb-btn:hover {
+  background: var(--hover);
+}
+
+#addBtn {
+  font-size: 20px;
+  font-weight: 300;
+}
+
+/* Menu panel */
+.menu-panel {
+  position: absolute;
+  top: 34px;
+  right: 4px;
+  z-index: 10;
+  background: var(--bar);
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  padding: 8px;
+  min-width: 170px;
+}
+
+.colors {
+  display: flex;
+  gap: 6px;
+  padding-bottom: 8px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--hover);
+}
+
+.swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+}
+
+.swatch.active {
+  outline: 2px solid var(--text);
+  outline-offset: 1px;
+}
+
+.menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  padding: 8px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.menu-item:hover {
+  background: var(--hover);
+}
+
+.menu-item.danger {
+  color: #c62828;
+}
+
+.theme-charcoal .menu-item.danger {
+  color: #ff8a80;
+}
+
+/* Editor */
+.editor {
+  flex: 1;
+  padding: 12px 14px;
+  overflow-y: auto;
+  outline: none;
+  line-height: 1.5;
+  user-select: text;
+  cursor: text;
+  word-wrap: break-word;
+}
+
+.editor:empty::before {
+  content: "Take a note...";
+  color: var(--muted);
+}
+
+.editor ul {
+  padding-left: 22px;
+}
+
+/* Format toolbar */
+.toolbar {
+  display: flex;
+  gap: 2px;
+  padding: 4px 6px;
+  background: var(--bar);
+  flex-shrink: 0;
+}
+
+.fmt-btn {
+  width: 30px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.fmt-btn:hover {
+  background: var(--hover);
+}
+
+.fmt-btn.active {
+  background: var(--hover);
+}
+
+/* Scrollbar */
+.editor::-webkit-scrollbar {
+  width: 8px;
+}
+
+.editor::-webkit-scrollbar-thumb {
+  background: var(--muted);
+  border-radius: 4px;
+}
