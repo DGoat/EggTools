@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
 
-const SIZE = 32;
+const SIZE = 256;
 
 function crc32(buf) {
   let c;
@@ -33,8 +33,9 @@ for (let y = 0; y < SIZE; y++) {
   raw[y * (SIZE * 4 + 1)] = 0; // filter type 0
   for (let x = 0; x < SIZE; x++) {
     const i = y * (SIZE * 4 + 1) + 1 + x * 4;
-    const border = x < 2 || x > SIZE - 3 || y < 2 || y > SIZE - 3;
-    const bar = y < 9;
+    const edge = Math.round(SIZE * 0.06);
+    const border = x < edge || x > SIZE - 1 - edge || y < edge || y > SIZE - 1 - edge;
+    const bar = y < SIZE * 0.28;
     let r, g, b;
     if (border) {
       r = 210; g = 190; b = 60;

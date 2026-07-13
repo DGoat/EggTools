@@ -5,11 +5,35 @@
   "main": "src/main.js",
   "scripts": {
     "start": "node scripts/start.js",
-    "dist": "electron-builder"
+    "dist": "electron-builder --win nsis"
   },
   "author": "EggTools",
   "license": "MIT",
+  "build": {
+    "appId": "com.eggtools.stickynotes",
+    "productName": "Sticky Notes",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Sticky Notes"
+    }
+  },
   "devDependencies": {
-    "electron": "^31.0.0"
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
   }
 }
