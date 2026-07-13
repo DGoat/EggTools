@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline';" />
+  <title>Sticky Notes</title>
+  <link rel="stylesheet" href="list.css" />
+</head>
+<body>
+  <header class="list-titlebar" id="titlebar">
+    <span class="list-title">Sticky Notes</span>
+    <div class="tb-spacer"></div>
+    <button class="tb-btn" id="newBtn" title="New note">+</button>
+  </header>
+
+  <div class="search-wrap">
+    <input type="text" id="search" placeholder="Search notes..." />
+  </div>
+
+  <div class="note-list" id="noteList"></div>
+
+  <div class="empty" id="empty" hidden>No notes yet. Click + to create one.</div>
+
+  <script src="list.js"></script>
+</body>
+</html>

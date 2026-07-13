@@ -8,8 +8,11 @@ A lightweight desktop sticky notes app inspired by Windows Sticky Notes, built w
 - Draggable title bar, resizable windows (position/size persisted)
 - 7 color themes (yellow / green / pink / purple / blue / gray / charcoal)
 - Rich text formatting: **bold**, *italic*, underline, strikethrough, bullet list
-- Auto-save while typing; notes reopen on next launch
+- Auto-save while typing; open notes reopen on next launch
 - Create (`+`) and delete notes; per-note menu
+- **System tray** — app stays resident; tray menu for New Note / Notes List / Quit
+- **Launch at startup** — toggle from the tray menu
+- **Notes list window** — searchable overview of all notes; click to open, closed notes are kept and can be reopened
 
 ## Data
 
@@ -30,13 +33,21 @@ npm start
 ```
 sticky-notes/
 ├── package.json
+├── scripts/
+│   ├── start.js           # Launcher (forces GUI mode)
+│   └── gen-icon.js        # Generates the tray icon
+├── assets/
+│   └── icon.png           # Tray / window icon
 └── src/
-    ├── main.js            # Main process: windows, storage, IPC
+    ├── main.js            # Main process: tray, windows, storage, IPC
     ├── preload.js         # Secure contextBridge API
     └── renderer/
         ├── index.html     # Note UI
         ├── styles.css     # Themes and layout
-        └── renderer.js    # Editing, formatting, save logic
+        ├── renderer.js    # Editing, formatting, save logic
+        ├── list.html      # Notes list window
+        ├── list.css       # List styling
+        └── list.js        # List logic
 ```
 
 ## Build
