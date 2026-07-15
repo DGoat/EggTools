@@ -247,6 +247,8 @@ ipcMain.handle('todo:update', (_e, { date, id, patch }) => store.updateTodo(date
 ipcMain.handle('todo:delete', (_e, { date, id }) => store.deleteTodo(date, id));
 ipcMain.handle('todo:search', (_e, { query, mode }) => store.searchTodos(query, mode));
 ipcMain.handle('todo:dates', () => store.listTodoDates());
+ipcMain.handle('todo:summary', () => store.summary());
+ipcMain.handle('todo:all', () => store.allTodos());
 
 // Keep app resident in tray
 app.on('window-all-closed', () => { /* no-op */ });

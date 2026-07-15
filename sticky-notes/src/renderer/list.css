@@ -45,7 +45,7 @@ body {
 
 /* Rows */
 .row { display: flex; gap: 8px; padding: 10px; flex-shrink: 0; }
-.search-row { padding-top: 0; }
+.search-row { padding-bottom: 0; }
 .row input[type="text"] {
   flex: 1; padding: 7px 10px; border: 1px solid #ddd; border-radius: 6px;
   font-size: 13px; outline: none;
@@ -117,6 +117,46 @@ body {
 .todo-item select {
   border: 1px solid #ddd; border-radius: 6px; padding: 3px 4px; font-size: 12px; outline: none;
 }
+.status-sel.status-new { background: #eceff1; color: #546e7a; border-color: #90a4ae; }
+.status-sel.status-in-progress { background: #e3f2fd; color: #1565c0; border-color: #1e88e5; }
+.status-sel.status-paused { background: #fff3e0; color: #e65100; border-color: #fb8c00; }
+.status-sel.status-done { background: #e8f5e9; color: #2e7d32; border-color: #43a047; }
 .carried { font-size: 10px; color: #b26a00; margin-left: 4px; }
 
 .search-result-date { font-size: 11px; color: #888; margin-left: 6px; }
+
+.todo-edit {
+  outline: none;
+  border-radius: 4px;
+  padding: 1px 2px;
+}
+.todo-edit:focus {
+  background: rgba(240, 200, 0, 0.18);
+  box-shadow: 0 0 0 1px #f0c800;
+}
+
+/* Filterable table */
+#summaryView { padding: 8px 10px 10px; }
+.tbl-filters {
+  display: flex; gap: 6px; margin-bottom: 8px;
+}
+.tbl-filters select, .tbl-filters input {
+  border: 1px solid #ddd; border-radius: 6px; padding: 5px 6px; font-size: 12px; outline: none;
+}
+.tbl-filters select { flex-shrink: 0; }
+.tbl-filters input { flex: 1; min-width: 0; }
+.tbl-filters input:focus, .tbl-filters select:focus { border-color: #f0c800; }
+
+.tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+.tbl th {
+  text-align: left; color: #888; font-weight: 600;
+  padding: 6px 6px; border-bottom: 1px solid #e5e5e5; position: sticky; top: 0; background: #f5f5f5;
+}
+.tbl th.th-date { cursor: pointer; white-space: nowrap; }
+.tbl th.th-date:hover { color: #333; }
+.tbl th.th-status { width: 84px; }
+.tbl td { padding: 6px 6px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+.tbl td.td-date { white-space: nowrap; color: #1565c0; cursor: pointer; }
+.tbl td.td-date:hover { text-decoration: underline; }
+.tbl td.td-text { word-break: break-word; }
+.tbl-count { margin-top: 8px; text-align: right; color: #999; font-size: 11px; }

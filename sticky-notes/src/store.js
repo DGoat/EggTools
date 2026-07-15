@@ -260,6 +260,47 @@ function searchTodos(query, mode) {
   return results;
 }
 
+function zeroCounts() {
+  return { new: 0, 'in-progress': 0, paused: 0, done: 0 };
+}
+
+function addCounts(dst, src) {
+  Object.keys(src).forEach((k) => { dst[k] = (dst[k] || 0) + src[k]; });
+}
+
+// Flatten all todos across every day: [{ date, item }]
+function allTodos() {
+  const res = [];
+  listTodoDates().forEach((date) => {
+    const day = readTodoFile(date);
+    if (day && Array.isArray(day.items)) {
+      day.items.forEach((item) => res.push({ date, item }));
+    }
+  });
+  return res;
+}
+
+// Aggregate all days into year -> month -> days with per-status counts.
+function summary() {
+  const tree = {};
+  listTodoDates().forEach((date) => {
+    const day = readTodoFile(date);
+    if (!day) return;
+    const [y, m] = date.split('-');
+    if (!tree[y]) tree[y] = { total: 0, counts: zeroCounts(), months: {} };
+    if (!tree[y].months[m]) tree[y].months[m] = { total: 0, counts: zeroCounts(), days: [] };
+    const c = zeroCounts();
+    (day.items || []).forEach((it) => { if (c[it.status] != null) c[it.status]++; });
+    const total = (day.items || []).length;
+    tree[y].months[m].days.push({ date, total, counts: c });
+    tree[y].months[m].total += total;
+    addCounts(tree[y].months[m].counts, c);
+    tree[y].total += total;
+    addCounts(tree[y].counts, c);
+  });
+  return tree;
+}
+
 module.exports = {
   TODO_STATUSES,
   ensureRepo,
@@ -278,5 +319,7 @@ module.exports = {
   deleteTodo,
   searchTodos,
   listTodoDates,
+  summary,
+  allTodos,
   genId
 };

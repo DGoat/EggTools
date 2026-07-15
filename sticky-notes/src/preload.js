@@ -25,5 +25,7 @@ contextBridge.exposeInMainWorld('todoAPI', {
   update: (date, id, patch) => ipcRenderer.invoke('todo:update', { date, id, patch }),
   remove: (date, id) => ipcRenderer.invoke('todo:delete', { date, id }),
   search: (query, mode) => ipcRenderer.invoke('todo:search', { query, mode }),
-  dates: () => ipcRenderer.invoke('todo:dates')
+  dates: () => ipcRenderer.invoke('todo:dates'),
+  summary: () => ipcRenderer.invoke('todo:summary'),
+  all: () => ipcRenderer.invoke('todo:all')
 });

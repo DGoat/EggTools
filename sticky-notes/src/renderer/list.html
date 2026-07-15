@@ -35,14 +35,10 @@
       <span id="dateLabel"></span>
       <button class="nav" id="nextDay" title="Next day">&#8250;</button>
       <button class="today-btn" id="todayBtn">Today</button>
+      <button class="today-btn" id="summaryBtn" title="Year / month summary">汇总</button>
     </div>
 
-    <div class="row">
-      <input type="text" id="todoInput" placeholder="Add a to-do... (Enter)" />
-      <button class="primary" id="addTodoBtn">+</button>
-    </div>
-
-    <div class="row search-row">
+    <div class="row search-row" id="todoSearchRow">
       <input type="text" id="todoSearch" placeholder="Search all todos..." />
       <select id="searchMode">
         <option value="exact">精确</option>
@@ -50,7 +46,13 @@
       </select>
     </div>
 
+    <div class="row" id="todoAddRow">
+      <input type="text" id="todoInput" placeholder="Add a to-do... (Enter)" />
+      <button class="primary" id="addTodoBtn">+</button>
+    </div>
+
     <div class="scroll" id="todoList"></div>
+    <div class="scroll" id="summaryView" hidden></div>
     <div class="empty" id="todoEmpty" hidden>No to-dos for this day.</div>
   </section>
 
