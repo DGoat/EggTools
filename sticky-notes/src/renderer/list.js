@@ -18,6 +18,7 @@ tabs.forEach((t) => {
 });
 
 document.getElementById('closeWin').addEventListener('click', () => window.close());
+document.getElementById('minWin').addEventListener('click', () => window.winCtl.minimize());
 
 // ---------- Notes tab ----------
 const noteList = document.getElementById('noteList');
@@ -86,15 +87,19 @@ function shiftDate(dateStr, delta) {
 }
 
 async function loadTodos() {
-  if (!currentDate) currentDate = await window.todoAPI.today();
+  currentDate = await window.todoAPI.today();
   renderDay();
 }
+
+const STATUS_RANK = { new: 0, 'in-progress': 0, paused: 1, done: 2 };
 
 async function renderDay() {
   showDayView();
   dateLabel.textContent = currentDate;
   const day = await window.todoAPI.day(currentDate);
-  const items = day.items || [];
+  const items = (day.items || []).slice().sort(
+    (a, b) => (STATUS_RANK[a.status] ?? 0) - (STATUS_RANK[b.status] ?? 0)
+  );
   todoList.innerHTML = '';
   todoEmpty.hidden = items.length !== 0;
   items.forEach((it) => todoList.appendChild(buildTodoRow(it, currentDate)));

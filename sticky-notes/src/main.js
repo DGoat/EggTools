@@ -2,6 +2,8 @@ const { app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage } = require
 const path = require('path');
 const store = require('./store');
 
+app.setAppUserModelId('com.eggtools.stickynotes');
+
 const iconPath = path.join(__dirname, '..', 'assets', 'icon.png');
 const settingsFile = path.join(app.getPath('userData'), 'settings.json');
 
@@ -51,7 +53,7 @@ function createNoteWindow(note) {
     frame: false,
     minWidth: 220,
     minHeight: 160,
-    skipTaskbar: true,
+    skipTaskbar: false,
     backgroundColor: '#00000000',
     icon: iconPath,
     webPreferences: {
@@ -234,6 +236,12 @@ ipcMain.handle('note:open', (_e, id) => openNote(id));
 ipcMain.handle('note:delete', (_e, id) => deleteNote(id));
 ipcMain.handle('note:close', (_e, id) => hideNote(id));
 ipcMain.handle('note:colors', () => COLORS);
+
+// ---- Window controls ----
+ipcMain.handle('win:minimize', (e) => {
+  const w = BrowserWindow.fromWebContents(e.sender);
+  if (w && !w.isDestroyed()) w.minimize();
+});
 
 // ---- List IPC ----
 ipcMain.handle('list:all', () => getNoteSummaries());

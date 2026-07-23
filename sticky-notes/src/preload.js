@@ -1,5 +1,9 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
+contextBridge.exposeInMainWorld('winCtl', {
+  minimize: () => ipcRenderer.invoke('win:minimize')
+});
+
 contextBridge.exposeInMainWorld('notesAPI', {
   get: (id) => ipcRenderer.invoke('note:get', id),
   save: (id, patch) => ipcRenderer.invoke('note:save', { id, patch }),
