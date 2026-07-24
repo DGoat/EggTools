@@ -212,12 +212,11 @@ if (!gotLock) {
 
     const notes = store.getNotes();
     const openIds = Object.keys(notes).filter((id) => notes[id].open !== false);
-    if (Object.keys(notes).length === 0) {
-      newNote();
-    } else if (openIds.length === 0) {
-      createListWindow();
-    } else {
-      openIds.forEach((id) => createNoteWindow(notes[id]));
+    createListWindow();
+    openIds.forEach((id) => createNoteWindow(notes[id]));
+    if (listWin && !listWin.isDestroyed()) {
+      listWin.show();
+      listWin.focus();
     }
 
     app.on('activate', () => createListWindow());
