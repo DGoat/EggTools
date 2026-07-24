@@ -53,7 +53,7 @@ function createNoteWindow(note) {
     frame: false,
     minWidth: 220,
     minHeight: 160,
-    skipTaskbar: false,
+    skipTaskbar: true,
     backgroundColor: '#00000000',
     icon: iconPath,
     webPreferences: {

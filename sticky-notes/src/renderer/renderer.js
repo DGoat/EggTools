@@ -91,7 +91,6 @@ document.addEventListener('selectionchange', updateToolbarState);
 
 // Title bar actions
 addBtn.addEventListener('click', () => window.notesAPI.create());
-document.getElementById('minBtn').addEventListener('click', () => window.winCtl.minimize());
 closeBtn.addEventListener('click', () => {
   window.notesAPI.save(noteId, { content: editor.innerHTML });
   window.notesAPI.close(noteId);
