@@ -31,8 +31,16 @@ function applyAutoLaunch() {
 }
 
 function noteTitle(note) {
-  const text = (note.content || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').trim();
-  return text.split('\n')[0].slice(0, 40) || 'Empty note';
+  const text = (note.content || '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(div|p|li|h[1-6])>/gi, '\n')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
+  const firstLine = text.split('\n').map((s) => s.trim()).find((s) => s.length > 0);
+  return (firstLine || '').slice(0, 60) || 'Empty note';
 }
 
 function createNoteWindow(note) {
