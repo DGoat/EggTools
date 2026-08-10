@@ -92,15 +92,18 @@ function saveNotesFile() {
 }
 
 function getNotes() {
+  loadNotes();
   return notes;
 }
 
 function setNote(id, note) {
+  loadNotes();
   notes[id] = note;
   saveNotesFile();
 }
 
 function patchNote(id, patch) {
+  loadNotes();
   if (!notes[id]) return false;
   notes[id] = Object.assign(notes[id], patch);
   saveNotesFile();
@@ -108,6 +111,7 @@ function patchNote(id, patch) {
 }
 
 function removeNote(id) {
+  loadNotes();
   delete notes[id];
   saveNotesFile();
 }
