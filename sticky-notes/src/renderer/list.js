@@ -25,32 +25,138 @@ const noteList = document.getElementById('noteList');
 const noteEmpty = document.getElementById('noteEmpty');
 const noteSearch = document.getElementById('noteSearch');
 let allNotes = [];
+const UNGROUPED = '未分组';
+const collapsedGroups = new Set();
+
+function distinctGroups() {
+  const s = new Set();
+  allNotes.forEach((n) => { if (n.group) s.add(n.group); });
+  return Array.from(s).sort((a, b) => a.localeCompare(b, 'zh'));
+}
+
+function startNewGroup(card, n, gsel) {
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'group-input';
+  input.placeholder = '分组名';
+  input.value = n.group || '';
+  input.addEventListener('click', (e) => e.stopPropagation());
+  let done = false;
+  const commit = async () => {
+    if (done) return;
+    done = true;
+    await window.listAPI.setGroup(n.id, input.value.trim());
+  };
+  input.addEventListener('keydown', (e) => {
+    e.stopPropagation();
+    if (e.key === 'Enter') { e.preventDefault(); commit(); }
+    else if (e.key === 'Escape') { done = true; renderNotes(); }
+  });
+  input.addEventListener('blur', commit);
+  card.replaceChild(input, gsel);
+  input.focus();
+}
+
+function buildNoteCard(n) {
+  const card = document.createElement('div');
+  card.className = 'note-card card-' + n.color;
+
+  const text = document.createElement('span');
+  text.className = 'text';
+  text.textContent = n.title;
+  card.appendChild(text);
+
+  if (n.open) {
+    const badge = document.createElement('span');
+    badge.className = 'badge';
+    badge.textContent = 'open';
+    card.appendChild(badge);
+  }
+
+  const gsel = document.createElement('select');
+  gsel.className = 'group-sel';
+  gsel.title = '分组';
+  const cur = n.group || '';
+  const optNone = document.createElement('option');
+  optNone.value = '';
+  optNone.textContent = UNGROUPED;
+  if (cur === '') optNone.selected = true;
+  gsel.appendChild(optNone);
+  distinctGroups().forEach((g) => {
+    const o = document.createElement('option');
+    o.value = g;
+    o.textContent = g;
+    if (g === cur) o.selected = true;
+    gsel.appendChild(o);
+  });
+  const optNew = document.createElement('option');
+  optNew.value = '__new__';
+  optNew.textContent = '＋ 新建分组';
+  gsel.appendChild(optNew);
+  gsel.addEventListener('click', (e) => e.stopPropagation());
+  gsel.addEventListener('change', async (e) => {
+    e.stopPropagation();
+    if (gsel.value === '__new__') { startNewGroup(card, n, gsel); return; }
+    await window.listAPI.setGroup(n.id, gsel.value);
+  });
+  card.appendChild(gsel);
+
+  const del = document.createElement('button');
+  del.className = 'del';
+  del.textContent = '\u2715';
+  del.addEventListener('click', (e) => { e.stopPropagation(); window.listAPI.remove(n.id); });
+  card.appendChild(del);
+
+  card.addEventListener('click', () => window.listAPI.open(n.id));
+  return card;
+}
 
 function renderNotes() {
   const q = noteSearch.value.trim().toLowerCase();
   const items = allNotes.filter((n) => n.title.toLowerCase().includes(q));
   noteList.innerHTML = '';
   noteEmpty.hidden = allNotes.length !== 0;
+
+  const buckets = new Map();
   items.forEach((n) => {
-    const card = document.createElement('div');
-    card.className = 'note-card card-' + n.color;
-    const text = document.createElement('span');
-    text.className = 'text';
-    text.textContent = n.title;
-    card.appendChild(text);
-    if (n.open) {
-      const badge = document.createElement('span');
-      badge.className = 'badge';
-      badge.textContent = 'open';
-      card.appendChild(badge);
+    const g = n.group || UNGROUPED;
+    if (!buckets.has(g)) buckets.set(g, []);
+    buckets.get(g).push(n);
+  });
+
+  const groupNames = distinctGroups().filter((g) => buckets.has(g));
+  if (buckets.has(UNGROUPED)) groupNames.push(UNGROUPED);
+
+  groupNames.forEach((g) => {
+    const section = document.createElement('div');
+    section.className = 'grp';
+
+    const header = document.createElement('div');
+    header.className = 'grp-header';
+    const collapsed = collapsedGroups.has(g);
+    const caret = document.createElement('span');
+    caret.className = 'grp-caret';
+    caret.textContent = collapsed ? '\u25b8' : '\u25be';
+    const name = document.createElement('span');
+    name.className = 'grp-name';
+    name.textContent = g;
+    const count = document.createElement('span');
+    count.className = 'grp-count';
+    count.textContent = buckets.get(g).length;
+    header.appendChild(caret);
+    header.appendChild(name);
+    header.appendChild(count);
+    header.addEventListener('click', () => {
+      if (collapsedGroups.has(g)) collapsedGroups.delete(g);
+      else collapsedGroups.add(g);
+      renderNotes();
+    });
+    section.appendChild(header);
+
+    if (!collapsed) {
+      buckets.get(g).forEach((n) => section.appendChild(buildNoteCard(n)));
     }
-    const del = document.createElement('button');
-    del.className = 'del';
-    del.textContent = '\u2715';
-    del.addEventListener('click', (e) => { e.stopPropagation(); window.listAPI.remove(n.id); });
-    card.appendChild(del);
-    card.addEventListener('click', () => window.listAPI.open(n.id));
-    noteList.appendChild(card);
+    noteList.appendChild(section);
   });
 }
 
@@ -78,6 +184,7 @@ const todoSearch = document.getElementById('todoSearch');
 const searchMode = document.getElementById('searchMode');
 
 let currentDate = null;
+let knownToday = null;
 
 function shiftDate(dateStr, delta) {
   const [y, m, d] = dateStr.split('-').map(Number);
@@ -88,8 +195,19 @@ function shiftDate(dateStr, delta) {
 
 async function loadTodos() {
   currentDate = await window.todoAPI.today();
+  knownToday = currentDate;
   renderDay();
 }
+
+// Auto-roll to the new day at midnight (no restart needed).
+window.todoAPI.onDayChanged((t) => {
+  const viewingToday = currentDate === knownToday;
+  if (!summaryMode && viewingToday && !todoSearch.value.trim()) {
+    currentDate = t;
+    renderDay();
+  }
+  knownToday = t;
+});
 
 const STATUS_RANK = { new: 0, 'in-progress': 0, paused: 1, done: 2 };
 

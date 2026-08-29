@@ -83,6 +83,30 @@ body {
 .card-purple{background:#e4d4ff}.card-blue{background:#cfecff}.card-gray{background:#e9e9e9}
 .card-charcoal{background:#3a3a3a;color:#f2f2f2}.card-charcoal .del{color:rgba(255,255,255,.5)}
 
+/* Note groups */
+.grp { margin-bottom: 6px; }
+.grp-header {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 4px; margin: 6px 0 4px; cursor: pointer;
+  font-size: 12px; color: #607d8b; user-select: none;
+}
+.grp-header:hover { color: #37474f; }
+.grp-caret { width: 12px; text-align: center; font-size: 10px; }
+.grp-name { font-weight: 600; }
+.grp-count {
+  margin-left: auto; background: rgba(0,0,0,0.08); color: #546e7a;
+  border-radius: 10px; padding: 0 8px; font-size: 11px; line-height: 18px;
+}
+.group-sel {
+  max-width: 96px; font-size: 11px; padding: 2px 4px;
+  border: 1px solid rgba(0,0,0,0.15); border-radius: 6px;
+  background: rgba(255,255,255,0.6); color: #37474f; cursor: pointer;
+}
+.group-input {
+  width: 92px; font-size: 11px; padding: 2px 4px;
+  border: 1px solid #90a4ae; border-radius: 6px; outline: none;
+}
+
 /* Date bar */
 .date-bar {
   display: flex; align-items: center; gap: 8px;

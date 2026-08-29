@@ -99,6 +99,8 @@ function newNote() {
     content: '',
     color: 'yellow',
     open: true,
+    createdAt: Date.now(),
+    group: '',
     bounds: {
       x: display.workArea.x + 120 + offset,
       y: display.workArea.y + 120 + offset,
@@ -159,13 +161,23 @@ function createListWindow() {
   listWin.on('closed', () => { listWin = null; });
 }
 
+function noteCreatedAt(n) {
+  if (n.createdAt) return n.createdAt;
+  const t = parseInt(String(n.id).slice(0, -5), 36);
+  return Number.isFinite(t) ? t : 0;
+}
+
 function getNoteSummaries() {
-  return Object.values(store.getNotes()).map((n) => ({
-    id: n.id,
-    title: noteTitle(n),
-    color: n.color || 'yellow',
-    open: windows.has(n.id)
-  }));
+  return Object.values(store.getNotes())
+    .map((n) => ({
+      id: n.id,
+      title: noteTitle(n),
+      color: n.color || 'yellow',
+      open: windows.has(n.id),
+      createdAt: noteCreatedAt(n),
+      group: n.group || ''
+    }))
+    .sort((a, b) => b.createdAt - a.createdAt);
 }
 
 function refreshList() {
@@ -228,6 +240,19 @@ if (!gotLock) {
     }
 
     app.on('activate', () => createListWindow());
+
+    // Roll Daily Todos over to the new day at midnight without a restart.
+    let knownToday = store.todayStr();
+    setInterval(() => {
+      const t = store.todayStr();
+      if (t !== knownToday) {
+        knownToday = t;
+        store.ensureToday();
+        if (listWin && !listWin.isDestroyed()) {
+          listWin.webContents.send('todo:day-changed', t);
+        }
+      }
+    }, 30000);
   });
 }
 
@@ -253,6 +278,11 @@ ipcMain.handle('win:minimize', (e) => {
 // ---- List IPC ----
 ipcMain.handle('list:all', () => getNoteSummaries());
 ipcMain.handle('list:new', () => newNote().id);
+ipcMain.handle('list:group', (_e, { id, group }) => {
+  const ok = store.patchNote(id, { group: String(group || '').trim() });
+  refreshList();
+  return ok;
+});
 
 // ---- Todo IPC ----
 ipcMain.handle('todo:today', () => store.ensureToday());

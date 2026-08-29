@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld('listAPI', {
   create: () => ipcRenderer.invoke('list:new'),
   open: (id) => ipcRenderer.invoke('note:open', id),
   remove: (id) => ipcRenderer.invoke('note:delete', id),
+  setGroup: (id, group) => ipcRenderer.invoke('list:group', { id, group }),
   onUpdate: (cb) => ipcRenderer.on('list:update', (_e, data) => cb(data))
 });
 
@@ -31,5 +32,6 @@ contextBridge.exposeInMainWorld('todoAPI', {
   search: (query, mode) => ipcRenderer.invoke('todo:search', { query, mode }),
   dates: () => ipcRenderer.invoke('todo:dates'),
   summary: () => ipcRenderer.invoke('todo:summary'),
-  all: () => ipcRenderer.invoke('todo:all')
+  all: () => ipcRenderer.invoke('todo:all'),
+  onDayChanged: (cb) => ipcRenderer.on('todo:day-changed', (_e, date) => cb(date))
 });
