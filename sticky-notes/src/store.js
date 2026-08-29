@@ -6,12 +6,15 @@ const { execFile, execFileSync } = require('child_process');
 const REMOTE = process.env.EGG_DATA_REMOTE || 'https://github.com/DGoat/EggNotes-data.git';
 const dataDir = path.join(app.getPath('userData'), 'data-repo');
 const notesFile = path.join(dataDir, 'notes.json');
+const groupsFile = path.join(dataDir, 'groups.json');
 const todosDir = path.join(dataDir, 'todos');
 
 const TODO_STATUSES = ['new', 'in-progress', 'paused', 'done'];
 const CARRY_STATUSES = ['new', 'in-progress'];
+const GROUP_PALETTE = ['yellow', 'green', 'pink', 'purple', 'blue', 'gray', 'charcoal'];
 
 let notes = {};
+let groupColors = {};
 let hasGit = false;
 
 // ---------- Git helpers ----------
@@ -39,6 +42,7 @@ function ensureRepo() {
   }
   fs.mkdirSync(todosDir, { recursive: true });
   loadNotes();
+  loadGroups();
 }
 
 let pushTimer = null;
@@ -113,6 +117,49 @@ function patchNote(id, patch) {
 function removeNote(id) {
   loadNotes();
   delete notes[id];
+  saveNotesFile();
+}
+
+// ---------- Groups ----------
+function loadGroups() {
+  try {
+    groupColors = JSON.parse(fs.readFileSync(groupsFile, 'utf-8'));
+  } catch {
+    groupColors = {};
+  }
+}
+
+function saveGroupsFile() {
+  try {
+    fs.writeFileSync(groupsFile, JSON.stringify(groupColors, null, 2));
+  } catch (err) {
+    console.error('save groups failed', err);
+  }
+  syncPush('groups: update');
+}
+
+function autoGroupColor(name) {
+  let h = 0;
+  for (const ch of String(name)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return GROUP_PALETTE[h % GROUP_PALETTE.length];
+}
+
+function getGroupColor(name) {
+  if (!name) return null;
+  return groupColors[name] || autoGroupColor(name);
+}
+
+function setGroupColor(name, color) {
+  const g = String(name || '').trim();
+  if (!g) return;
+  loadGroups();
+  groupColors[g] = color;
+  saveGroupsFile();
+  // Recolor every note in this group so the group stays visually consistent.
+  loadNotes();
+  Object.values(notes).forEach((n) => {
+    if ((n.group || '') === g) n.color = color;
+  });
   saveNotesFile();
 }
 
@@ -314,6 +361,8 @@ module.exports = {
   setNote,
   patchNote,
   removeNote,
+  getGroupColor,
+  setGroupColor,
   // todos
   todayStr,
   ensureToday,

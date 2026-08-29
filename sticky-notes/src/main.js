@@ -175,7 +175,8 @@ function getNoteSummaries() {
       color: n.color || 'yellow',
       open: windows.has(n.id),
       createdAt: noteCreatedAt(n),
-      group: n.group || ''
+      group: n.group || '',
+      groupColor: n.group ? store.getGroupColor(n.group) : null
     }))
     .sort((a, b) => b.createdAt - a.createdAt);
 }
@@ -279,9 +280,17 @@ ipcMain.handle('win:minimize', (e) => {
 ipcMain.handle('list:all', () => getNoteSummaries());
 ipcMain.handle('list:new', () => newNote().id);
 ipcMain.handle('list:group', (_e, { id, group }) => {
-  const ok = store.patchNote(id, { group: String(group || '').trim() });
+  const g = String(group || '').trim();
+  const patch = { group: g };
+  if (g) patch.color = store.getGroupColor(g);
+  const ok = store.patchNote(id, patch);
   refreshList();
   return ok;
+});
+ipcMain.handle('list:group-color', (_e, { group, color }) => {
+  store.setGroupColor(group, color);
+  refreshList();
+  return true;
 });
 
 // ---- Todo IPC ----

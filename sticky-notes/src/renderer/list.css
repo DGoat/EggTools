@@ -97,6 +97,23 @@ body {
   margin-left: auto; background: rgba(0,0,0,0.08); color: #546e7a;
   border-radius: 10px; padding: 0 8px; font-size: 11px; line-height: 18px;
 }
+.grp-color {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 1px solid rgba(0,0,0,0.2); cursor: pointer; flex: none;
+}
+.grp-color:hover { transform: scale(1.15); }
+.grp-palette {
+  position: absolute; top: 20px; right: 0; z-index: 20;
+  display: flex; gap: 4px; padding: 6px;
+  background: #fff; border: 1px solid rgba(0,0,0,0.15);
+  border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+}
+.grp-swatch {
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 1px solid rgba(0,0,0,0.2); cursor: pointer;
+}
+.grp-swatch.active { outline: 2px solid #37474f; outline-offset: 1px; }
+.grp-swatch:hover { transform: scale(1.15); }
 .group-sel {
   max-width: 96px; font-size: 11px; padding: 2px 4px;
   border: 1px solid rgba(0,0,0,0.15); border-radius: 6px;

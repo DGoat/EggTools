@@ -27,6 +27,34 @@ const noteSearch = document.getElementById('noteSearch');
 let allNotes = [];
 const UNGROUPED = '未分组';
 const collapsedGroups = new Set();
+const COLOR_HEX = {
+  yellow: '#fdf6a8', green: '#d3f7c4', pink: '#ffd6e0', purple: '#e4d4ff',
+  blue: '#cfecff', gray: '#e9e9e9', charcoal: '#3a3a3a'
+};
+const COLOR_ORDER = ['yellow', 'green', 'pink', 'purple', 'blue', 'gray', 'charcoal'];
+
+function openGroupPalette(anchor, group, current) {
+  const existing = document.querySelector('.grp-palette');
+  if (existing) existing.remove();
+  const pal = document.createElement('div');
+  pal.className = 'grp-palette';
+  COLOR_ORDER.forEach((c) => {
+    const sw = document.createElement('span');
+    sw.className = 'grp-swatch' + (c === current ? ' active' : '');
+    sw.style.background = COLOR_HEX[c];
+    sw.title = c;
+    sw.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      pal.remove();
+      await window.listAPI.setGroupColor(group, c);
+    });
+    pal.appendChild(sw);
+  });
+  pal.addEventListener('click', (e) => e.stopPropagation());
+  anchor.appendChild(pal);
+  const close = () => { pal.remove(); document.removeEventListener('click', close); };
+  setTimeout(() => document.addEventListener('click', close), 0);
+}
 
 function distinctGroups() {
   const s = new Set();
@@ -146,6 +174,19 @@ function renderNotes() {
     header.appendChild(caret);
     header.appendChild(name);
     header.appendChild(count);
+    if (g !== UNGROUPED) {
+      const gc = buckets.get(g)[0].groupColor || 'gray';
+      const dot = document.createElement('span');
+      dot.className = 'grp-color';
+      dot.style.background = COLOR_HEX[gc] || '#ccc';
+      dot.title = '分组颜色';
+      dot.style.position = 'relative';
+      dot.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openGroupPalette(dot, g, gc);
+      });
+      header.appendChild(dot);
+    }
     header.addEventListener('click', () => {
       if (collapsedGroups.has(g)) collapsedGroups.delete(g);
       else collapsedGroups.add(g);

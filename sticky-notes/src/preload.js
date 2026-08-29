@@ -20,6 +20,7 @@ contextBridge.exposeInMainWorld('listAPI', {
   open: (id) => ipcRenderer.invoke('note:open', id),
   remove: (id) => ipcRenderer.invoke('note:delete', id),
   setGroup: (id, group) => ipcRenderer.invoke('list:group', { id, group }),
+  setGroupColor: (group, color) => ipcRenderer.invoke('list:group-color', { group, color }),
   onUpdate: (cb) => ipcRenderer.on('list:update', (_e, data) => cb(data))
 });
 
