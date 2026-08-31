@@ -152,10 +152,12 @@ function renderNotes() {
     buckets.get(g).push(n);
   });
 
-  const groupNames = distinctGroups().filter((g) => buckets.has(g));
   const isPinned = (g) => g !== UNGROUPED && !!(buckets.get(g)[0] || {}).groupPinned;
-  groupNames.sort((a, b) => (isPinned(b) ? 1 : 0) - (isPinned(a) ? 1 : 0));
+  const realGroups = distinctGroups().filter((g) => buckets.has(g));
+  realGroups.sort((a, b) => (isPinned(b) ? 1 : 0) - (isPinned(a) ? 1 : 0));
+  const groupNames = [];
   if (buckets.has(UNGROUPED)) groupNames.push(UNGROUPED);
+  realGroups.forEach((g) => groupNames.push(g));
 
   groupNames.forEach((g) => {
     const section = document.createElement('div');
