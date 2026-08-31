@@ -168,6 +168,7 @@ function noteCreatedAt(n) {
 }
 
 function getNoteSummaries() {
+  const pins = store.getGroupPins();
   return Object.values(store.getNotes())
     .map((n) => ({
       id: n.id,
@@ -176,7 +177,8 @@ function getNoteSummaries() {
       open: windows.has(n.id),
       createdAt: noteCreatedAt(n),
       group: n.group || '',
-      groupColor: n.group ? store.getGroupColor(n.group) : null
+      groupColor: n.group ? store.getGroupColor(n.group) : null,
+      groupPinned: n.group ? !!pins[n.group] : false
     }))
     .sort((a, b) => b.createdAt - a.createdAt);
 }
@@ -289,6 +291,11 @@ ipcMain.handle('list:group', (_e, { id, group }) => {
 });
 ipcMain.handle('list:group-color', (_e, { group, color }) => {
   store.setGroupColor(group, color);
+  refreshList();
+  return true;
+});
+ipcMain.handle('list:group-pin', (_e, { group, pinned }) => {
+  store.setGroupPinned(group, pinned);
   refreshList();
   return true;
 });

@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld('listAPI', {
   remove: (id) => ipcRenderer.invoke('note:delete', id),
   setGroup: (id, group) => ipcRenderer.invoke('list:group', { id, group }),
   setGroupColor: (group, color) => ipcRenderer.invoke('list:group-color', { group, color }),
+  setGroupPinned: (group, pinned) => ipcRenderer.invoke('list:group-pin', { group, pinned }),
   onUpdate: (cb) => ipcRenderer.on('list:update', (_e, data) => cb(data))
 });
 

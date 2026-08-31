@@ -7,6 +7,7 @@ const REMOTE = process.env.EGG_DATA_REMOTE || 'https://github.com/DGoat/EggNotes
 const dataDir = path.join(app.getPath('userData'), 'data-repo');
 const notesFile = path.join(dataDir, 'notes.json');
 const groupsFile = path.join(dataDir, 'groups.json');
+const groupPinsFile = path.join(dataDir, 'group-pins.json');
 const todosDir = path.join(dataDir, 'todos');
 
 const TODO_STATUSES = ['new', 'in-progress', 'paused', 'done'];
@@ -15,6 +16,7 @@ const GROUP_PALETTE = ['yellow', 'green', 'pink', 'purple', 'blue', 'gray', 'cha
 
 let notes = {};
 let groupColors = {};
+let groupPins = {};
 let hasGit = false;
 
 // ---------- Git helpers ----------
@@ -161,6 +163,38 @@ function setGroupColor(name, color) {
     if ((n.group || '') === g) n.color = color;
   });
   saveNotesFile();
+}
+
+// ---------- Group pinning ----------
+function loadGroupPins() {
+  try {
+    groupPins = JSON.parse(fs.readFileSync(groupPinsFile, 'utf-8'));
+  } catch {
+    groupPins = {};
+  }
+}
+
+function saveGroupPinsFile() {
+  try {
+    fs.writeFileSync(groupPinsFile, JSON.stringify(groupPins, null, 2));
+  } catch (err) {
+    console.error('save group pins failed', err);
+  }
+  syncPush('groups: pin');
+}
+
+function getGroupPins() {
+  loadGroupPins();
+  return groupPins;
+}
+
+function setGroupPinned(name, pinned) {
+  const g = String(name || '').trim();
+  if (!g) return;
+  loadGroupPins();
+  if (pinned) groupPins[g] = true;
+  else delete groupPins[g];
+  saveGroupPinsFile();
 }
 
 // ---------- Todos ----------
@@ -363,6 +397,8 @@ module.exports = {
   removeNote,
   getGroupColor,
   setGroupColor,
+  getGroupPins,
+  setGroupPinned,
   // todos
   todayStr,
   ensureToday,

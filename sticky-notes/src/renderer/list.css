@@ -102,6 +102,12 @@ body {
   border: 1px solid rgba(0,0,0,0.2); cursor: pointer; flex: none;
 }
 .grp-color:hover { transform: scale(1.15); }
+.grp-pin {
+  cursor: pointer; font-size: 12px; line-height: 1; flex: none;
+  opacity: 0.35; filter: grayscale(1); transition: opacity .12s, filter .12s;
+}
+.grp-pin:hover { opacity: 0.7; }
+.grp-pin.active { opacity: 1; filter: none; }
 .grp-palette {
   position: absolute; top: 20px; right: 0; z-index: 20;
   display: flex; gap: 4px; padding: 6px;

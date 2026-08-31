@@ -153,6 +153,8 @@ function renderNotes() {
   });
 
   const groupNames = distinctGroups().filter((g) => buckets.has(g));
+  const isPinned = (g) => g !== UNGROUPED && !!(buckets.get(g)[0] || {}).groupPinned;
+  groupNames.sort((a, b) => (isPinned(b) ? 1 : 0) - (isPinned(a) ? 1 : 0));
   if (buckets.has(UNGROUPED)) groupNames.push(UNGROUPED);
 
   groupNames.forEach((g) => {
@@ -175,6 +177,17 @@ function renderNotes() {
     header.appendChild(name);
     header.appendChild(count);
     if (g !== UNGROUPED) {
+      const pinned = isPinned(g);
+      const pin = document.createElement('span');
+      pin.className = 'grp-pin' + (pinned ? ' active' : '');
+      pin.textContent = '\u{1F4CC}';
+      pin.title = pinned ? '取消置顶' : '置顶';
+      pin.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await window.listAPI.setGroupPinned(g, !pinned);
+      });
+      header.appendChild(pin);
+
       const gc = buckets.get(g)[0].groupColor || 'gray';
       const dot = document.createElement('span');
       dot.className = 'grp-color';
