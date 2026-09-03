@@ -85,6 +85,31 @@ function startNewGroup(card, n, gsel) {
   input.focus();
 }
 
+function startRenameGroup(nameEl, g) {
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'group-input';
+  input.value = g;
+  input.addEventListener('click', (e) => e.stopPropagation());
+  let done = false;
+  const commit = async (save) => {
+    if (done) return;
+    done = true;
+    const v = input.value.trim();
+    if (save && v && v !== g) await window.listAPI.renameGroup(g, v);
+    else renderNotes();
+  };
+  input.addEventListener('keydown', (e) => {
+    e.stopPropagation();
+    if (e.key === 'Enter') { e.preventDefault(); commit(true); }
+    else if (e.key === 'Escape') { commit(false); }
+  });
+  input.addEventListener('blur', () => commit(true));
+  nameEl.replaceWith(input);
+  input.focus();
+  input.select();
+}
+
 function buildNoteCard(n) {
   const card = document.createElement('div');
   card.className = 'note-card card-' + n.color;
@@ -172,6 +197,14 @@ function renderNotes() {
     const name = document.createElement('span');
     name.className = 'grp-name';
     name.textContent = g;
+    if (g !== UNGROUPED) {
+      name.title = '双击重命名分组';
+      name.addEventListener('click', (e) => e.stopPropagation());
+      name.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        startRenameGroup(name, g);
+      });
+    }
     const count = document.createElement('span');
     count.className = 'grp-count';
     count.textContent = buckets.get(g).length;
@@ -305,12 +338,12 @@ function buildTodoRow(it, date, resultDate) {
   });
   text.appendChild(editable);
 
-  if (it.carriedFrom) {
-    const c = document.createElement('span');
-    c.className = 'carried';
-    c.textContent = '\u21b3' + it.carriedFrom;
-    text.appendChild(c);
-  }
+  const origin = it.originDate || date;
+  const od = document.createElement('span');
+  od.className = 'origin-date';
+  od.textContent = origin;
+  od.title = '创建日期';
+  text.appendChild(od);
   if (resultDate) {
     const dspan = document.createElement('span');
     dspan.className = 'search-result-date';

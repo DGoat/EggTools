@@ -197,6 +197,32 @@ function setGroupPinned(name, pinned) {
   saveGroupPinsFile();
 }
 
+function renameGroup(oldName, newName) {
+  const from = String(oldName || '').trim();
+  const to = String(newName || '').trim();
+  if (!from || !to || from === to) return false;
+
+  loadNotes();
+  Object.values(notes).forEach((n) => {
+    if ((n.group || '') === from) n.group = to;
+  });
+  saveNotesFile();
+
+  loadGroups();
+  if (groupColors[from] != null && groupColors[to] == null) {
+    groupColors[to] = groupColors[from];
+  }
+  delete groupColors[from];
+  saveGroupsFile();
+
+  loadGroupPins();
+  if (groupPins[from] && groupPins[to] == null) groupPins[to] = true;
+  delete groupPins[from];
+  saveGroupPinsFile();
+
+  return true;
+}
+
 // ---------- Todos ----------
 function pad(n) {
   return String(n).padStart(2, '0');
@@ -267,6 +293,7 @@ function ensureToday() {
             text: it.text,
             status: it.status,
             carriedFrom: last.date,
+            originDate: it.originDate || it.carriedFrom || last.date,
             createdAt: Date.now(),
             updatedAt: Date.now()
           });
@@ -289,6 +316,7 @@ function addTodo(dateStr, text) {
     id: genId(),
     text: String(text || '').trim(),
     status: 'new',
+    originDate: dateStr,
     createdAt: Date.now(),
     updatedAt: Date.now()
   };
@@ -399,6 +427,7 @@ module.exports = {
   setGroupColor,
   getGroupPins,
   setGroupPinned,
+  renameGroup,
   // todos
   todayStr,
   ensureToday,

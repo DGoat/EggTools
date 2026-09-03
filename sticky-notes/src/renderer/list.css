@@ -169,7 +169,7 @@ body {
 .status-sel.status-paused { background: #fff3e0; color: #e65100; border-color: #fb8c00; }
 .status-sel.status-done { background: #e8f5e9; color: #2e7d32; border-color: #43a047; }
 .carried { font-size: 10px; color: #b26a00; margin-left: 4px; }
-
+.origin-date { font-size: 11px; color: #9e9e9e; margin-left: 6px; white-space: nowrap; }
 .search-result-date { font-size: 11px; color: #888; margin-left: 6px; }
 
 .todo-edit {

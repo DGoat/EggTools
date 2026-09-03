@@ -299,6 +299,11 @@ ipcMain.handle('list:group-pin', (_e, { group, pinned }) => {
   refreshList();
   return true;
 });
+ipcMain.handle('list:group-rename', (_e, { oldName, newName }) => {
+  const ok = store.renameGroup(oldName, newName);
+  refreshList();
+  return ok;
+});
 
 // ---- Todo IPC ----
 ipcMain.handle('todo:today', () => store.ensureToday());

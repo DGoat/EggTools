@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld('listAPI', {
   setGroup: (id, group) => ipcRenderer.invoke('list:group', { id, group }),
   setGroupColor: (group, color) => ipcRenderer.invoke('list:group-color', { group, color }),
   setGroupPinned: (group, pinned) => ipcRenderer.invoke('list:group-pin', { group, pinned }),
+  renameGroup: (oldName, newName) => ipcRenderer.invoke('list:group-rename', { oldName, newName }),
   onUpdate: (cb) => ipcRenderer.on('list:update', (_e, data) => cb(data))
 });
 
