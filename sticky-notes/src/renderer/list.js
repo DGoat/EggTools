@@ -211,6 +211,16 @@ function renderNotes() {
     header.appendChild(caret);
     header.appendChild(name);
     header.appendChild(count);
+    const add = document.createElement('button');
+    add.className = 'grp-add';
+    add.textContent = '+';
+    add.title = '在此分组新建便签';
+    add.addEventListener('click', (e) => {
+      e.stopPropagation();
+      collapsedGroups.delete(g);
+      window.listAPI.create(g === UNGROUPED ? '' : g);
+    });
+    header.appendChild(add);
     if (g !== UNGROUPED) {
       const pinned = isPinned(g);
       const pin = document.createElement('span');

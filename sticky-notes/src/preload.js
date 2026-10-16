@@ -11,12 +11,13 @@ contextBridge.exposeInMainWorld('notesAPI', {
   open: (id) => ipcRenderer.invoke('note:open', id),
   remove: (id) => ipcRenderer.invoke('note:delete', id),
   close: (id) => ipcRenderer.invoke('note:close', id),
-  colors: () => ipcRenderer.invoke('note:colors')
+  colors: () => ipcRenderer.invoke('note:colors'),
+  onColorChanged: (cb) => ipcRenderer.on('note:color', (_e, color) => cb(color))
 });
 
 contextBridge.exposeInMainWorld('listAPI', {
   all: () => ipcRenderer.invoke('list:all'),
-  create: () => ipcRenderer.invoke('list:new'),
+  create: (group) => ipcRenderer.invoke('list:new', group),
   open: (id) => ipcRenderer.invoke('note:open', id),
   remove: (id) => ipcRenderer.invoke('note:delete', id),
   setGroup: (id, group) => ipcRenderer.invoke('list:group', { id, group }),

@@ -89,7 +89,8 @@ function createNoteWindow(note) {
   return win;
 }
 
-function newNote() {
+function newNote(group = '') {
+  const g = String(group || '').trim();
   const id = store.genId();
   const cursor = screen.getCursorScreenPoint();
   const display = screen.getDisplayNearestPoint(cursor);
@@ -97,10 +98,10 @@ function newNote() {
   const note = {
     id,
     content: '',
-    color: 'yellow',
+    color: g ? store.getGroupColor(g) : 'yellow',
     open: true,
     createdAt: Date.now(),
-    group: '',
+    group: g,
     bounds: {
       x: display.workArea.x + 120 + offset,
       y: display.workArea.y + 120 + offset,
@@ -280,17 +281,27 @@ ipcMain.handle('win:minimize', (e) => {
 
 // ---- List IPC ----
 ipcMain.handle('list:all', () => getNoteSummaries());
-ipcMain.handle('list:new', () => newNote().id);
+ipcMain.handle('list:new', (_e, group) => newNote(group).id);
 ipcMain.handle('list:group', (_e, { id, group }) => {
   const g = String(group || '').trim();
   const patch = { group: g };
   if (g) patch.color = store.getGroupColor(g);
   const ok = store.patchNote(id, patch);
+  const win = windows.get(id);
+  if (ok && patch.color && win && !win.isDestroyed()) {
+    win.webContents.send('note:color', patch.color);
+  }
   refreshList();
   return ok;
 });
 ipcMain.handle('list:group-color', (_e, { group, color }) => {
   store.setGroupColor(group, color);
+  Object.values(store.getNotes()).forEach((note) => {
+    const win = windows.get(note.id);
+    if (note.group === String(group || '').trim() && win && !win.isDestroyed()) {
+      win.webContents.send('note:color', note.color);
+    }
+  });
   refreshList();
   return true;
 });

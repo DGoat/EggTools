@@ -97,6 +97,12 @@ body {
   margin-left: auto; background: rgba(0,0,0,0.08); color: #546e7a;
   border-radius: 10px; padding: 0 8px; font-size: 11px; line-height: 18px;
 }
+.grp-add {
+  width: 20px; height: 20px; flex: none;
+  border: none; border-radius: 4px; background: transparent;
+  color: inherit; font-size: 16px; cursor: pointer;
+}
+.grp-add:hover { background: rgba(0,0,0,0.08); }
 .grp-color {
   width: 14px; height: 14px; border-radius: 50%;
   border: 1px solid rgba(0,0,0,0.2); cursor: pointer; flex: none;

@@ -24,7 +24,12 @@ let saveTimer = null;
 
 function applyTheme(color) {
   document.body.className = 'theme-' + color;
+  colorRow.querySelectorAll('.swatch').forEach((sw) => {
+    sw.classList.toggle('active', sw.title === color);
+  });
 }
+
+window.notesAPI.onColorChanged(applyTheme);
 
 function scheduleSave() {
   clearTimeout(saveTimer);
